@@ -1,4 +1,5 @@
 import HttpError from "../models/http-error.js";
+import { v4 as uuidv4 } from "uuid";
 
 const DUMMY_PLACES = [
   {
@@ -46,4 +47,20 @@ export function getPlaceByCreatorId(req, res, next) {
   }
 
   res.json({ place });
+}
+
+export function createPlace(req, res, next) {
+  const { title, description, coordinates, address, creator } = req.body;
+  const createdPlace = {
+    id: uuidv4(),
+    title,
+    description,
+    location: coordinates,
+    address,
+    creator,
+  };
+
+  DUMMY_PLACES.push(createdPlace);
+
+  res.status(201).json({ place: createdPlace });
 }
