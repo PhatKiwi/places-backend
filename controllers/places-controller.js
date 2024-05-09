@@ -32,21 +32,21 @@ export function getPlaceById(req, res, next) {
   res.json({ place });
 }
 
-export function getPlaceByCreatorId(req, res, next) {
+export function getPlacesByCreatorId(req, res, next) {
   const userId = req.params.uid;
-  const place = DUMMY_PLACES.find((p) => {
+  const places = DUMMY_PLACES.filter((p) => {
     return p.creator === userId;
   });
 
-  if (!place) {
+  if (!places || places.length === 0) {
     const error = new HttpError(
-      `Could not find a place with the id ${userId}`,
+      `Could not find a places with the id ${userId}`,
       404
     );
     return next(error);
   }
 
-  res.json({ place });
+  res.json({ places });
 }
 
 export function createPlace(req, res, next) {
