@@ -1,4 +1,5 @@
 import express from "express";
+import HttpError from "../models/http-error.js";
 
 const router = express.Router();
 
@@ -23,8 +24,10 @@ router.get("/:pid", (req, res, next) => {
   });
 
   if (!place) {
-    const error = new Error(`Could not find a place with the id ${placeId}`);
-    error.code = 404;
+    const error = new HttpError(
+      `Could not find a place with the id ${placeId}`,
+      404
+    );
     return next(error);
   }
 
@@ -38,8 +41,10 @@ router.get("/user/:uid", (req, res, next) => {
   });
 
   if (!place) {
-    const error = new Error(`Could not find a place with the id ${userId}`);
-    error.code = 404;
+    const error = new HttpError(
+      `Could not find a place with the id ${userId}`,
+      404
+    );
     return next(error);
   }
 
