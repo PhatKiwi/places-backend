@@ -110,46 +110,34 @@ export async function updatePlace(req, res, next) {
   const { title, description } = req.body;
   const placeId = req.params.pid;
 
-  let place;
   try {
-    place = await Place.findById(placeId);
-  } catch (err) {
-    const error = new HttpError("Something went wrong", 500);
-    return next(error);
-  }
-
-  place.title = title;
-  place.description = description;
-
-  try {
-    await place.save();
-  } catch {
-    const error = new HttpError(
-      "Something went wrong, could not update place",
-      500
+    const updatedPlace = await Place.findByIdAndUpdate(
+      placeId,
+      {
+        title,
+        description,
+      },
+      { runValidators: true, new: true }
     );
-    return next(error);
-  }
+    if (!updatedPlace) {
+      return next(new HttpError("Could not find place to update"), 500);
+    }
 
-  res.json({ place: place.toObject({ getters: true }) });
+    res.json({ place: updatedPlace.toObject({ getters: true }) });
+  } catch (err) {
+    return next(new HttpError("Something went wrong", 500));
+  }
 }
 
 export async function deletePlace(req, res, next) {
   const placeId = req.params.pid;
-
-  let place;
   try {
-    place = await Place.findById(placeId);
+    const deletedPlace = await Place.findByIdAndDelete(placeId);
+    if (!deletedPlace) {
+      return next(new HttpError("Could not find place to delete"), 500);
+    }
+    res.json({ message: "Place Deleted" });
   } catch (err) {
-    const error = new HttpError("Something went wrong", 500);
-    return next(error);
+    return next(new HttpError("Something went wrong", 500));
   }
-
-  try {
-    await place.deleteOne();
-  } catch (err) {
-    const error = new HttpError("Something went wrong", 500);
-    return next(error);
-  }
-  res.json({ message: "Deleted place" });
 }
