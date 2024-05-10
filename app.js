@@ -1,12 +1,17 @@
 import express from "express";
 import bodyParser from "body-parser";
 import "dotenv/config";
+import mongoose from "mongoose";
 
 import HttpError from "./models/http-error.js";
 import placesRoutes from "./routes/places-routes.js";
 import usersRoutes from "./routes/users-routes.js";
 
 const app = express();
+
+const MONGODB_USERNAME = process.env.MONGODB_USERNAME;
+const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD;
+const uri = `mongodb+srv://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@cluster0.g3viuar.mongodb.net/places?retryWrites=true&w=majority&appName=Cluster0`;
 
 app.use(bodyParser.json());
 
@@ -27,4 +32,11 @@ app.use((error, req, res, next) => {
     .json({ message: error.message || `An unkown error occurred` });
 });
 
-app.listen(5001);
+mongoose
+  .connect(uri)
+  .then(() => {
+    app.listen(5001);
+  })
+  .catch((err) => {
+    console.log(err);
+  });
