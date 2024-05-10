@@ -4,17 +4,14 @@ import { validationResult } from "express-validator";
 import HttpError from "../models/http-error.js";
 import User from "../models/user.js";
 
-const DUMMY_USERS = [
-  {
-    id: "u1",
-    name: "Phat Kiwi",
-    email: "test@test",
-    password: "test",
-  },
-];
-
-export function getUsers(req, res, next) {
-  res.json({ users: DUMMY_USERS });
+export async function getUsers(req, res, next) {
+  let users;
+  try {
+    users = await User.find({}, "-password");
+  } catch (err) {
+    return next(new HttpError("something went wrong"), 500);
+  }
+  res.json({ users: users.map((user) => user.toObject({ getters: true })) });
 }
 
 export async function signup(req, res, next) {
