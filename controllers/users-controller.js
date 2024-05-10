@@ -37,7 +37,7 @@ export async function signup(req, res, next) {
     email,
     image: "This is a link to a file",
     password, // Will encrypt later
-    places: "Dummy value will be a list of places",
+    places: [],
   });
 
   try {

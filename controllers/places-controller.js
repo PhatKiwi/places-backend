@@ -1,16 +1,17 @@
-import { v4 as uuidv4 } from "uuid";
 import { validationResult } from "express-validator";
 
 import HttpError from "../models/http-error.js";
 import getCoordsForAddress from "../util/location.js";
 import Place from "../models/place.js";
+import User from "../models/user.js";
+import mongoose from "mongoose";
 
 export async function getPlaceById(req, res, next) {
-  const placeId = req.params.pid;
+  const { pid } = req.params;
   let place;
 
   try {
-    place = await Place.findById(placeId);
+    place = await Place.findById(pid);
   } catch (err) {
     const error = new HttpError("Something went wrong", 500);
     return next(error);
@@ -18,7 +19,7 @@ export async function getPlaceById(req, res, next) {
 
   if (!place) {
     const error = new HttpError(
-      `Could not find a place with the id ${placeId}`,
+      `Could not find a place with the id ${pid}`,
       404
     );
     return next(error);
@@ -28,11 +29,11 @@ export async function getPlaceById(req, res, next) {
 }
 
 export async function getPlacesByCreatorId(req, res, next) {
-  const userId = req.params.uid;
+  const { uid } = req.params;
   let places;
 
   try {
-    places = await Place.find({ creator: userId });
+    places = await Place.find({ creator: uid });
   } catch (err) {
     const error = new HttpError("Something went wrong", 500);
     return next(error);
@@ -40,7 +41,7 @@ export async function getPlacesByCreatorId(req, res, next) {
 
   if (!places || places.length === 0) {
     const error = new HttpError(
-      `Could not find a places with the id ${userId}`,
+      `Could not find a places with the id ${uid}`,
       404
     );
     return next(error);
@@ -76,11 +77,25 @@ export async function createPlace(req, res, next) {
     creator,
   });
 
+  let user;
   try {
-    await createdPlace.save();
+    user = await User.findById(creator);
+    if (!user) {
+      return next(new HttpError("could not find user by id", 500));
+    }
   } catch (err) {
-    const error = new HttpError("Creating place failed", 500);
-    return next(error);
+    return next(new HttpError("Creating place failed", 500));
+  }
+
+  try {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    await createdPlace.save({ session });
+    user.places.push(createdPlace);
+    await user.save({ session });
+    await session.commitTransaction();
+  } catch (err) {
+    return next(new HttpError("Creating place failed", 500));
   }
 
   res.status(201).json({ place: createdPlace });
@@ -94,11 +109,11 @@ export async function updatePlace(req, res, next) {
   }
 
   const { title, description } = req.body;
-  const placeId = req.params.pid;
+  const { pid } = req.params;
 
   try {
     const updatedPlace = await Place.findByIdAndUpdate(
-      placeId,
+      pid,
       {
         title,
         description,
@@ -106,24 +121,45 @@ export async function updatePlace(req, res, next) {
       { runValidators: true, new: true }
     );
     if (!updatedPlace) {
-      return next(new HttpError("Could not find place to update"), 500);
+      return next(new HttpError("Could not find place to update", 500));
     }
 
     res.json({ place: updatedPlace.toObject({ getters: true }) });
   } catch (err) {
-    return next(new HttpError("Something went wrong", 500));
+    next(new HttpError("Something went wrong", 500));
   }
 }
 
 export async function deletePlace(req, res, next) {
-  const placeId = req.params.pid;
   try {
-    const deletedPlace = await Place.findByIdAndDelete(placeId);
-    if (!deletedPlace) {
-      return next(new HttpError("Could not find place to delete"), 500);
+    const { pid } = req.params;
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    const place = await Place.findById(pid);
+    if (!place) return next(new HttpError("Place not found", 404));
+
+    const updatedUserPlaces = await User.updateOne(
+      { _id: place.creator },
+      { $pull: { places: pid } },
+      { session }
+    );
+    if (updatedUserPlaces.modifiedCount === 0) {
+      return next(
+        new HttpError("Failed to remove place from user's places", 500)
+      );
     }
-    res.json({ message: "Place Deleted" });
-  } catch (err) {
-    return next(new HttpError("Something went wrong", 500));
+
+    const deletedPlace = await Place.findByIdAndDelete(pid).session(session);
+    if (!deletedPlace)
+      return next(new HttpError("Failed to delete the place", 500));
+
+    await session.commitTransaction();
+
+    res.status(200).json({ message: "Place deleted!" });
+  } catch (error) {
+    console.error(">>> deletePlace", error);
+    next(error);
   }
 }
