@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import { validationResult } from "express-validator";
 import HttpError from "../models/http-error.js";
 
 const DUMMY_USERS = [
@@ -15,6 +16,12 @@ export function getUsers(req, res, next) {
 }
 
 export function signup(req, res, next) {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    throw new HttpError("invalid data", 422);
+  }
+
   const { name, email, password } = req.body;
 
   const hasUser = DUMMY_USERS.find((u) => u.email === email);
