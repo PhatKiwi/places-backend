@@ -3,6 +3,7 @@ import { validationResult } from "express-validator";
 
 import HttpError from "../models/http-error.js";
 import getCoordsForAddress from "../util/location.js";
+import Place from "../models/place.js";
 
 let DUMMY_PLACES = [
   {
@@ -68,16 +69,21 @@ export async function createPlace(req, res, next) {
     return next(error);
   }
 
-  const createdPlace = {
-    id: uuidv4(),
+  const createdPlace = new Place({
     title,
     description,
-    location: coordinates,
     address,
+    location: coordinates,
+    image: "a url that points to an image",
     creator,
-  };
+  });
 
-  DUMMY_PLACES.push(createdPlace);
+  try {
+    await createdPlace.save();
+  } catch (err) {
+    const error = new HttpError("Creating place failed", 500);
+    return next(error);
+  }
 
   res.status(201).json({ place: createdPlace });
 }
