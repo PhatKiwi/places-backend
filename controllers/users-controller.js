@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import { validationResult } from "express-validator";
 
 import HttpError from "../models/http-error.js";
+import User from "../models/user.js";
 
 const DUMMY_USERS = [
   {
@@ -16,30 +17,39 @@ export function getUsers(req, res, next) {
   res.json({ users: DUMMY_USERS });
 }
 
-export function signup(req, res, next) {
+export async function signup(req, res, next) {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    throw new HttpError("invalid data", 422);
+    return next(new HttpError("invalid data", 422));
   }
 
   const { name, email, password } = req.body;
 
-  const hasUser = DUMMY_USERS.find((u) => u.email === email);
-
-  if (hasUser) {
-    throw new HttpError("Email already in use", 422);
+  try {
+    const existingUser = await User.findOne({ email: email });
+    if (existingUser) {
+      return next(new HttpError("email already in use please login", 422));
+    }
+  } catch (err) {
+    return next(new HttpError("something went wrong", 500));
   }
 
-  const createdUser = {
-    id: uuidv4(),
+  const createdUser = new User({
     name,
     email,
-    password,
-  };
+    image: "This is a link to a file",
+    password, // Will encrypt later
+    places: "Dummy value will be a list of places",
+  });
 
-  DUMMY_USERS.push(createdUser);
-  res.status(201).json({ user: createdUser });
+  try {
+    await createdUser.save();
+  } catch (err) {
+    const error = new HttpError("Creating user failed", 500);
+    return next(error);
+  }
+  res.status(201).json({ user: createdUser.toObject({ getters: true }) });
 }
 
 export function login(req, res, next) {
@@ -47,7 +57,7 @@ export function login(req, res, next) {
 
   const user = DUMMY_USERS.find((u) => u.email === email);
   if (!user || user.password !== password) {
-    throw new HttpError("incorrect user email or password", 401);
+    return next(new HttpError("incorrect user email or password", 401));
   }
   res.json({ message: "logged in" });
 }
