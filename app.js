@@ -1,5 +1,6 @@
 import express from "express";
 import bodyParser from "body-parser";
+import "dotenv/config";
 
 import HttpError from "./models/http-error.js";
 import placesRoutes from "./routes/places-routes.js";
