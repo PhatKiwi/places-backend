@@ -5,20 +5,6 @@ import HttpError from "../models/http-error.js";
 import getCoordsForAddress from "../util/location.js";
 import Place from "../models/place.js";
 
-let DUMMY_PLACES = [
-  {
-    id: "p1",
-    title: "Empire State Building",
-    description: "One of the buildings in the world",
-    location: {
-      lat: 40.7484474,
-      lng: -73.9871516,
-    },
-    address: "20 W 34th St, New York, NY 10001",
-    creator: "u1",
-  },
-];
-
 export async function getPlaceById(req, res, next) {
   const placeId = req.params.pid;
   let place;
