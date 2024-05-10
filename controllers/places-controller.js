@@ -19,11 +19,16 @@ let DUMMY_PLACES = [
   },
 ];
 
-export function getPlaceById(req, res, next) {
+export async function getPlaceById(req, res, next) {
   const placeId = req.params.pid;
-  const place = DUMMY_PLACES.find((p) => {
-    return p.id === placeId;
-  });
+  let place;
+
+  try {
+    place = await Place.findById(placeId);
+  } catch (err) {
+    const error = new HttpError("Something went wrong", 500);
+    return next(error);
+  }
 
   if (!place) {
     const error = new HttpError(
@@ -33,14 +38,19 @@ export function getPlaceById(req, res, next) {
     return next(error);
   }
 
-  res.json({ place });
+  res.json({ place: place.toObject({ getters: true }) });
 }
 
-export function getPlacesByCreatorId(req, res, next) {
+export async function getPlacesByCreatorId(req, res, next) {
   const userId = req.params.uid;
-  const places = DUMMY_PLACES.filter((p) => {
-    return p.creator === userId;
-  });
+  let places;
+
+  try {
+    places = await Place.find({ creator: userId });
+  } catch (err) {
+    const error = new HttpError("Something went wrong", 500);
+    return next(error);
+  }
 
   if (!places || places.length === 0) {
     const error = new HttpError(
@@ -50,14 +60,16 @@ export function getPlacesByCreatorId(req, res, next) {
     return next(error);
   }
 
-  res.json({ places });
+  res.json({
+    places: places.map((place) => place.toObject({ getters: true })),
+  });
 }
 
 export async function createPlace(req, res, next) {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    next(new HttpError("invalid data", 422));
+    return next(new HttpError("invalid data", 422));
   }
 
   const { title, description, address, creator } = req.body;
