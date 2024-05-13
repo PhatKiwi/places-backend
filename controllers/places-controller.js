@@ -30,16 +30,16 @@ export async function getPlaceById(req, res, next) {
 
 export async function getPlacesByCreatorId(req, res, next) {
   const { uid } = req.params;
-  let places;
+  let userWithPlaces;
 
   try {
-    places = await Place.find({ creator: uid });
+    userWithPlaces = await User.findById(uid).populate("places");
   } catch (err) {
     const error = new HttpError("Something went wrong", 500);
     return next(error);
   }
 
-  if (!places || places.length === 0) {
+  if (!userWithPlaces || userWithPlaces.places.length === 0) {
     const error = new HttpError(
       `Could not find a places with the id ${uid}`,
       404
@@ -48,7 +48,9 @@ export async function getPlacesByCreatorId(req, res, next) {
   }
 
   res.json({
-    places: places.map((place) => place.toObject({ getters: true })),
+    places: userWithPlaces.places.map((place) =>
+      place.toObject({ getters: true })
+    ),
   });
 }
 
