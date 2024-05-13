@@ -51,9 +51,10 @@ export async function signup(req, res, next) {
 
 export async function login(req, res, next) {
   const { email, password } = req.body;
+  let existingUser;
 
   try {
-    const existingUser = await User.findOne({ email: email });
+    existingUser = await User.findOne({ email: email });
     if (!existingUser || existingUser.password !== password) {
       // implement actual logging in
       return next(new HttpError("Login failed invalid username or password"));
@@ -62,5 +63,8 @@ export async function login(req, res, next) {
     return next(new HttpError("something went wrong", 500));
   }
 
-  res.json({ message: "logged in" });
+  res.json({
+    message: "logged in",
+    user: existingUser.toObject({ getters: true }),
+  });
 }
